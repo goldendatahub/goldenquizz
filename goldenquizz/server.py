@@ -1,9 +1,11 @@
 from nicegui import ui
 from goldenquizz.game_engine import GameEngine
+
 from goldenquizz.organizer.organizer_prep import organizer_prep_page
 from goldenquizz.organizer.organizer_question import organizer_question_page
 from goldenquizz.organizer.organizer_results import organizer_results_page
 from goldenquizz.organizer.organizer_final import organizer_final_page
+
 from goldenquizz.participant_session import participant_page
 
 # --- Initialisation du moteur du jeu ---
