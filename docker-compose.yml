@@ -1,0 +1,21 @@
+version: '3.9'
+
+services:
+  goldenquizz:
+    build: .
+    container_name: goldenquizz
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - TZ=Europe/Paris
+    volumes:
+      - ./data:/app/data  # si ton app stocke des fichiers localement
+    # Optionnel : auto-pull du dépôt à chaque redémarrage
+    command: >
+      /bin/sh -c "
+        echo '🔄 Mise à jour du code depuis GitHub...' &&
+        git pull origin main || true &&
+        python main.py
+      "
+

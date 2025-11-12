@@ -1,0 +1,21 @@
+game:
+  title: "GoldenQuizz - Anniversaire du VIP"
+
+questions:
+  - text: "Quel est le plat préféré du VIP ?"
+    options:
+      - "Pizza"
+      - "Sushi"
+      - "Burger"
+      - "Tacos"
+    points: 10
+    duration: 20
+
+  - text: "Quelle est sa couleur préférée ?"
+    options:
+      - "Bleu"
+      - "Rouge"
+      - "Vert"
+      - "Jaune"
+    points: 5
+    duration: 15
