@@ -13,9 +13,10 @@ WORKDIR /app
 RUN git clone --depth=1 https://github.com/goldendatahub/goldenquizz.git .
 
 # Installer les dépendances avec uv
-RUN uv pip install -e .
+RUN uv pip install --system -e .
 
 EXPOSE 8080
 
 # Démarrer ton app
-CMD ["uv", "run", "python", "-m", "goldenquizz.server"]
+CMD ["python", "-m", "goldenquizz.server"]
+
