@@ -7,7 +7,7 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "32777:8080"
     environment:
       - TZ=Europe/Paris
     volumes:
