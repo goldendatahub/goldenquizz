@@ -1,56 +1,102 @@
 from nicegui import ui, app
+from goldenquizz.ui.layouts import mobile_layout
+from goldenquizz.ui.components import Card, QuestionCard
+from goldenquizz.ui import theme
 
 
 def participant_final_page(engine):
 
-    @ui.page("/participant/final")
+    @ui.page('/participant/final')
     def participant_final():
-        pid = app.storage.user.get("player_id")
+
         name = app.storage.user.get("player_name", "Joueur")
+        pid = app.storage.user.get("player_id")
+        is_vip = (pid == engine.vip_id)
 
-        ui.label("🏁 Fin de la partie").classes("text-3xl font-bold text-blue-700 mb-4")
-        ui.label(f"👤 Joueur : {name}").classes("text-lg mb-6")
+        questions = engine.get_questions()
+        answers = engine.answers  # {q_idx: {player_id: choice}}
 
-        # 🧠 Cas spécial : le joueur est le VIP
-        if pid == engine.vip_id:
-            ui.label("👑 En tant que VIP, tu ne participes pas au classement.").classes("text-lg mt-4")
-            ui.label("Merci d’avoir partagé tes réponses avec les invités 🎉").classes("text-green-700 mt-2")
-            return
+        with mobile_layout():
 
-        leaderboard = engine.leaderboard()
-        leaderboard = [p for p in leaderboard if not p.get("is_vip")]
+            with Card()():
 
-        # Trouve la position du joueur
-        player_rank = None
-        player_score = 0
-        for i, p in enumerate(leaderboard, start=1):
-            if p["name"] == name:
-                player_rank = i
-                player_score = p["score"]
-                break
+                # -------------------------------------------------------
+                # TITRE
+                # -------------------------------------------------------
+                ui.label("🏁 Fin de la partie !") \
+                    .classes("text-3xl font-bold text-center text-blue-600 mb-6")
 
-        # ✅ Affiche le message principal
-        if player_rank is not None:
-            ui.label(f"🎯 Ton score final : {player_score} points").classes("text-xl font-semibold text-green-600 mt-4")
-            ui.label(f"🏅 Ta position : {player_rank}{'er' if player_rank == 1 else 'e'} sur {len(leaderboard)}").classes("text-lg mt-2")
-        else:
-            ui.label("⚠️ Impossible de retrouver ton score (erreur de session).").classes("text-red-600 mt-4")
+                ui.label(f"Merci d'avoir joué, {name} !") \
+                    .classes("text-xl text-center text-gray-700 mb-8")
 
-        ui.separator().classes("my-4")
+                # -------------------------------------------------------
+                # LEADERBOARD
+                # -------------------------------------------------------
+                leaderboard = engine.leaderboard()
 
-        # ✅ Classement général
-        ui.label("🏆 Classement final").classes("text-xl font-bold mb-2")
-        table = ui.table(
-            columns=[
-                {"name": "rank", "label": "#", "field": "rank"},
-                {"name": "name", "label": "Nom", "field": "name"},
-                {"name": "score", "label": "Score", "field": "score"},
-            ],
-            rows=[
-                {"rank": i + 1, "name": p["name"], "score": p["score"]}
-                for i, p in enumerate(leaderboard)
-            ],
-        ).classes("w-full max-w-md")
+                ui.label("📊 Classement final") \
+                    .classes("text-2xl font-semibold text-center text-gray-800 mt-4 mb-3")
 
-        ui.separator().classes("my-6")
-        ui.label("🎉 Merci d’avoir joué à GoldenQuizz !").classes("text-lg text-blue-800 mt-4")
+                if not leaderboard:
+                    ui.label("Aucun score disponible.") \
+                        .classes("text-center text-gray-500 mb-4")
+                else:
+                    for rank, item in enumerate(leaderboard, start=1):
+                        ui.label(f"{rank}. {item['name']} – {item['score']} points") \
+                            .classes("text-lg text-gray-700 text-center")
+
+                ui.separator().classes("my-6")
+
+                # -------------------------------------------------------
+                # TABLEAU RECAPITULATIF DE TOUTES LES QUESTIONS
+                # -------------------------------------------------------
+                ui.label("📝 Récapitulatif des questions") \
+                    .classes("text-2xl font-semibold text-center text-gray-800 mb-4")
+
+                for q_idx, q in enumerate(questions):
+
+                    answers_list = (
+                        q.get("options")
+                        or q.get("answers")
+                        or q.get("choices")
+                        or q.get("reponses")
+                        or []
+                    )
+
+                    answers_for_question = answers.get(q_idx, {})
+
+                    vip_choice = answers_for_question.get(engine.vip_id)
+                    player_choice = answers_for_question.get(pid)
+
+                    vip_text = (
+                        answers_list[vip_choice]
+                        if isinstance(vip_choice, int) and vip_choice < len(answers_list)
+                        else "—"
+                    )
+
+                    me_text = (
+                        answers_list[player_choice]
+                        if isinstance(player_choice, int) and player_choice < len(answers_list)
+                        else "—"
+                    )
+
+                    total = len(answers_for_question)
+                    correct = sum(1 for c in answers_for_question.values() if c == vip_choice)
+
+                    points_value = q.get("points", 1)
+                    gained = points_value if (player_choice == vip_choice) else 0
+
+                    ok = player_choice == vip_choice if player_choice is not None else None
+
+                    QuestionCard(
+                        number=q_idx + 1,
+                        question_text=q.get("text"),
+                        vip_text=vip_text,
+                        me_text=None if is_vip else me_text,
+                        ok=None if is_vip else ok,
+                        points=None if is_vip else gained,
+                        correct_stats=f"{correct}/{total}",
+                        is_vip=is_vip,
+                    )()
+    
+

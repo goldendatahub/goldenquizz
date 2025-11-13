@@ -31,7 +31,6 @@ def organizer_prep_page(engine):
                 ui.notify("Veuillez sélectionner un joueur.", type="warning")
                 return
 
-            # ❌ plus de conversion en int(pid)
             engine.set_vip(pid)
             ui.notify(f"{engine.players[pid]['name']} est maintenant le VIP 👑", type="positive")
 
@@ -60,4 +59,4 @@ def organizer_prep_page(engine):
             vip_selector.options = {pid: p["name"] for pid, p in engine.players.items()}
             vip_selector.update()
 
-        ui.timer(2, refresh)
+        ui.timer(2, refresh)  # <-- MOVED INSIDE THE FUNCTION

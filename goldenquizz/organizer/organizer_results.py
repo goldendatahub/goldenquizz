@@ -46,3 +46,4 @@ def organizer_results_page(engine):
             ui.button("⏭️ Question suivante", on_click=next_or_finish).props("color=secondary text-lg")
         else:
             ui.button("🏁 Terminer la partie", on_click=next_or_finish).props("color=positive text-lg")
+

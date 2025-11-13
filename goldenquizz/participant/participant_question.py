@@ -1,92 +1,72 @@
 from nicegui import ui, app
+from goldenquizz.ui.layouts import mobile_layout
+from goldenquizz.ui.components import Card, Title, Subtitle, PrimaryButton
+from goldenquizz.ui import theme
 
 
 def participant_question_page(engine):
 
-    @ui.page("/participant/question")
+    @ui.page('/participant/question')
     def question_page():
         name = app.storage.user.get("player_name", "Joueur")
         pid = app.storage.user.get("player_id")
 
-        ui.label(f"👤 {name}").classes("text-lg font-semibold text-blue-700 mb-2")
+        with mobile_layout():
 
-        # === Zone principale ===
-        question_label = ui.label("⏳ En attente de la question...").classes("text-xl mb-4")
-        answers_container = ui.column().classes("mt-4")
-        selected_answer = {'value': None}
+            with Card()():
 
-        # ✅ Bouton global Valider (désactivé au départ)
-        validate_btn = ui.button("✅ Valider", on_click=lambda: submit_answer()).props("color=positive")
-        validate_btn.set_enabled(False)
+                ui.label(f"👤 {name}") \
+                    .classes("text-xl font-semibold text-blue-600 mb-4 text-center")
 
-        # === FONCTIONS INTERNES ===
-        def build_answers(answers):
-            """Construit les boutons pour chaque réponse possible."""
-            answers_container.clear()
+                # === Zone principale ===
+                question_label = ui.label("⏳ En attente de la question...") \
+                    .classes("text-xl mb-4 text-center")
 
-            if not answers:
-                validate_btn.set_enabled(False)
-                return
+                answers_container = ui.column().classes("mt-4 w-full")
 
-            # ✅ Ajout des boutons avec "with answers_container:"
-            with answers_container:
-                for answer in answers:
-                    def on_select(a=answer):
-                        selected_answer["value"] = a
-                        ui.notify(f"Tu as choisi : {a}", type="info")
+                # ✔ Flag interne pour empêcher la duplication
+                answers_built = {'done': False}
 
-                        # met à jour les couleurs
-                        for b in answers_container.default_slot.children:
-                            if b.text == a:
-                                b.props("color=primary")
-                            else:
-                                b.props("color=blue-grey-5 outline")
+                # --- Build answers ---
+                def build_answers(answers):
+                    answers_container.clear()
+                    for index, answer_text in enumerate(answers):
 
-                        validate_btn.set_enabled(True)
+                        def make_click_handler(idx=index):
+                            def handler():
+                                engine.submit_answer(pid, idx)
+                                ui.navigate.to("/participant/answer")
+                            return handler
 
-                    ui.button(answer, on_click=on_select).props(
-                        "color=blue-grey-5 outline"
-                    ).classes("w-full max-w-xs mt-2")
+                        PrimaryButton(answer_text, make_click_handler())() \
+                            .classes("mt-2 w-full")
 
-            validate_btn.set_enabled(False)
+                # --- Refresh ---
+                def refresh():
+                    q = engine.get_current_question()
+                    if not q:
+                        return
 
-        def submit_answer():
-            """Envoie la réponse sélectionnée au moteur de jeu."""
-            if not selected_answer["value"]:
-                ui.notify("Choisis une réponse avant de valider.", type="warning")
-                return
+                    question_label.set_text(q.get("text", "❓ Question"))
 
-            engine.submit_answer(pid, selected_answer["value"])
-            ui.notify("✅ Réponse enregistrée !", type="positive")
+                    answers = (
+                        q.get("options")
+                        or q.get("answers")
+                        or q.get("choices")
+                        or q.get("reponses")
+                        or []
+                    )
 
-            # 🔒 désactive tout après validation
-            validate_btn.set_enabled(False)
-            for b in answers_container.default_slot.children:
-                b.props("disable=true")
+                    # 🟢 condition robuste
+                    if not answers_built['done']:
+                        build_answers(answers)
+                        answers_built['done'] = True
 
-            ui.navigate.to("/participant/answer")
+                ui.timer(2, refresh)
 
-        def refresh():
-            """Rafraîchit la question en cours."""
-            q = engine.get_current_question()
-            if not q:
-                question_label.set_text("⏳ En attente de la question...")
-                answers_container.clear()
-                validate_btn.set_enabled(False)
-                return
+                ui.label("Réponds dès que les réponses apparaissent 👇") \
+                    .classes("text-gray-400 text-sm mt-6 text-center")
 
-            question_label.set_text(q.get("text") or "Question en cours")
-            answers = (
-                q.get("options")
-                or q.get("answers")
-                or q.get("choices")
-                or q.get("reponses")
-                or []
-            )
-
-            # ✅ Reconstruit les réponses seulement si vide
-            if not answers_container.default_slot.children:
-                build_answers(answers)
-
-        # 🔁 Vérifie toutes les 2 secondes
-        ui.timer(2, refresh)
+                ui.label("GoldenQuizz © 2025") \
+                    .classes(theme.TEXT_FOOTER + " mt-4")
+    
