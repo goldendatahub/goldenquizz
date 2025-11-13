@@ -24,24 +24,35 @@ class GameEngine:
     # ---------- PLAYERS ----------
     def register_player(self, session_id, name):
         """
-        Enregistre un joueur (ou reconnecte un joueur existant ayant le même prénom).
+        Enregistre un joueur (ou reconnecte un joueur existant portant le même prénom).
+        Tous les session_id sont convertis en string pour éviter les collisions int/str.
         """
-        # 🔍 Recherche si un joueur portant ce nom existe déjà
+        session_id = str(session_id)
+
+        # 🔍 Check si prénom déjà existant → reconnecte ce joueur
         for pid, p in self.players.items():
             if p["name"].strip().lower() == name.strip().lower():
-                # ✅ Réutilisation du joueur existant
+                # replace player_id but keep data
                 self.players[session_id] = p
                 print(f"🔁 {name} s'est reconnecté (nouvelle session {session_id})")
                 return session_id
 
-        # 🆕 Nouveau joueur
+        # Nouveau joueur
         self.players[session_id] = {"name": name, "is_vip": False, "score": 0}
         print(f"✅ Nouveau joueur enregistré : {name} (ID={session_id})")
         return session_id
 
     def set_vip(self, session_id):
+        session_id = str(session_id)
+
+        # Reset VIP flags
         for pid in self.players:
             self.players[pid]["is_vip"] = False
+
+        if session_id not in self.players:
+            print("⚠️ Impossible de définir le VIP : ID inconnu.")
+            return
+
         self.players[session_id]["is_vip"] = True
         self.vip_id = session_id
         print(f"👑 {self.players[session_id]['name']} est maintenant le VIP")
@@ -57,8 +68,15 @@ class GameEngine:
 
     def submit_answer(self, session_id, choice):
         """Enregistre la réponse d’un joueur."""
+        session_id = str(session_id)
+
         if self.state != "running" or self.current_q is None:
             return
+
+        if session_id not in self.players:
+            print(f"⚠️ Réponse ignorée : joueur {session_id} inconnu.")
+            return
+
         player_name = self.players.get(session_id, {}).get("name", "Inconnu")
         self.answers[self.current_q][session_id] = choice
         print(f"📩 Réponse enregistrée: {player_name} → {choice}")
@@ -73,7 +91,6 @@ class GameEngine:
         self.state = "results"
         self.compute_scores()
 
-        # Vérifie la réponse du VIP
         if self.vip_id not in self.answers[self.current_q]:
             print("⚠️ Le VIP n’a pas encore répondu.")
         return True
@@ -82,10 +99,11 @@ class GameEngine:
         """Attribue les points aux joueurs ayant la même réponse que le VIP."""
         if self.vip_id is None:
             return
+
         q = self.get_questions()[self.current_q]
         points = q.get("points", 1)
-        vip_answer = self.answers[self.current_q].get(self.vip_id)
 
+        vip_answer = self.answers[self.current_q].get(self.vip_id)
         if vip_answer is None:
             return
 
@@ -94,18 +112,18 @@ class GameEngine:
                 self.players[pid]["score"] += points
                 print(f"🏅 {self.players[pid]['name']} gagne {points} points !")
 
+    # ---------- RESULTS ----------
     def leaderboard(self):
         """Retourne le classement sans inclure le VIP."""
         return sorted(
             [
                 {"name": p["name"], "score": p["score"]}
                 for pid, p in self.players.items()
-                if not p["is_vip"]  # ❌ exclure le VIP
+                if not p["is_vip"]
             ],
             key=lambda p: p["score"],
             reverse=True,
         )
-
 
     def get_current_question(self):
         """Retourne la question actuellement ouverte, ou None si aucune."""
@@ -115,7 +133,7 @@ class GameEngine:
         return None
 
     def get_results_summary(self):
-        """Construit un résumé des résultats de la question courante."""
+        """Construire un résumé des résultats."""
         if self.current_q is None or self.current_q not in self.answers:
             return None
 
@@ -126,13 +144,13 @@ class GameEngine:
         for answer in answers.values():
             stats[answer] = stats.get(answer, 0) + 1
 
-        leaderboard = self.leaderboard()
-        vip_answer = answers.get(self.vip_id, None)
+        vip_answer = answers.get(self.vip_id)
+
         return {
             "question": question.get("text", "Question"),
             "vip_answer": vip_answer or "Non répondu",
             "stats": [{"answer": k, "count": v} for k, v in stats.items()],
-            "leaderboard": leaderboard,
+            "leaderboard": self.leaderboard(),
         }
 
     # ---------- UTILITIES ----------

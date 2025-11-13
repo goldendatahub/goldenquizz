@@ -1,102 +1,109 @@
 from nicegui import ui, app
 from goldenquizz.ui.layouts import mobile_layout
-from goldenquizz.ui.components import Card, QuestionCard
+from goldenquizz.ui.components import Card, Title, Subtitle, QuestionCard
 from goldenquizz.ui import theme
 
 
 def participant_final_page(engine):
 
-    @ui.page('/participant/final')
+    @ui.page("/participant/final")
     def participant_final():
-
-        name = app.storage.user.get("player_name", "Joueur")
-        pid = app.storage.user.get("player_id")
-        is_vip = (pid == engine.vip_id)
-
-        questions = engine.get_questions()
-        answers = engine.answers  # {q_idx: {player_id: choice}}
 
         with mobile_layout():
 
             with Card()():
 
-                # -------------------------------------------------------
-                # TITRE
-                # -------------------------------------------------------
-                ui.label("🏁 Fin de la partie !") \
-                    .classes("text-3xl font-bold text-center text-blue-600 mb-6")
+                # ==========================================================
+                # DEBUG
+                # ==========================================================
+                print("DEBUG — answers =", engine.answers)
+                print("DEBUG — players =", engine.players)
+                print("DEBUG — current_q =", engine.current_q)
 
-                ui.label(f"Merci d'avoir joué, {name} !") \
-                    .classes("text-xl text-center text-gray-700 mb-8")
+                # ==========================================================
+                # Normalisation des IDs
+                # ==========================================================
+                pid = str(app.storage.user.get("player_id"))
+                name = app.storage.user.get("player_name", "Joueur")
+                vip_id = str(engine.vip_id)
 
-                # -------------------------------------------------------
-                # LEADERBOARD
-                # -------------------------------------------------------
-                leaderboard = engine.leaderboard()
+                is_vip = (pid == vip_id)
 
-                ui.label("📊 Classement final") \
-                    .classes("text-2xl font-semibold text-center text-gray-800 mt-4 mb-3")
+                Title("🏁 Fin de la partie")()
+                Subtitle(f"Merci d’avoir joué, {name} !")()
 
-                if not leaderboard:
-                    ui.label("Aucun score disponible.") \
-                        .classes("text-center text-gray-500 mb-4")
-                else:
-                    for rank, item in enumerate(leaderboard, start=1):
-                        ui.label(f"{rank}. {item['name']} – {item['score']} points") \
-                            .classes("text-lg text-gray-700 text-center")
+                # --- Classement (non-VIP seulement) ---
+                if not is_vip:
+                    leaderboard = engine.leaderboard()
+                    ui.label("🏆 Classement général").classes(
+                        "text-xl font-bold text-blue-700 mt-4 mb-2 text-center"
+                    )
+                    for entry in leaderboard:
+                        ui.label(f"{entry['name']} — {entry['score']} pts").classes(
+                            "text-gray-700 text-md text-center"
+                        )
 
-                ui.separator().classes("my-6")
+                ui.label("📋 Récapitulatif des questions").classes(
+                    "text-2xl font-semibold text-amber-700 mt-6 mb-4 text-center"
+                )
 
-                # -------------------------------------------------------
-                # TABLEAU RECAPITULATIF DE TOUTES LES QUESTIONS
-                # -------------------------------------------------------
-                ui.label("📝 Récapitulatif des questions") \
-                    .classes("text-2xl font-semibold text-center text-gray-800 mb-4")
+                # ==========================================================
+                # Boucle sur les questions
+                # ==========================================================
+                questions = engine.get_questions()
 
-                for q_idx, q in enumerate(questions):
+                for q_index, q_data in enumerate(questions):
+                    
+                    question_text = q_data.get("text", "Question")
+                    points = q_data.get("points", 1)
 
-                    answers_list = (
-                        q.get("options")
-                        or q.get("answers")
-                        or q.get("choices")
-                        or q.get("reponses")
+                    # Réponses pour cette question
+                    raw_answers = engine.answers.get(q_index, {})
+                    answers = {str(k): v for k, v in raw_answers.items()}
+
+                    # VIP
+                    vip_choice = answers.get(vip_id)
+
+                    # Liste d'options
+                    options = (
+                        q_data.get("options")
+                        or q_data.get("answers")
+                        or q_data.get("choices")
+                        or q_data.get("reponses")
                         or []
                     )
+                    vip_text = options[vip_choice] if vip_choice is not None else "—"
 
-                    answers_for_question = answers.get(q_idx, {})
+                    # Joueur
+                    player_choice = answers.get(pid)
+                    player_text = options[player_choice] if player_choice is not None else None
 
-                    vip_choice = answers_for_question.get(engine.vip_id)
-                    player_choice = answers_for_question.get(pid)
+                    # Points
+                    ok = None
+                    gained_points = 0
+                    if not is_vip and player_choice is not None and vip_choice is not None:
+                        ok = (player_choice == vip_choice)
+                        gained_points = points if ok else 0
 
-                    vip_text = (
-                        answers_list[vip_choice]
-                        if isinstance(vip_choice, int) and vip_choice < len(answers_list)
-                        else "—"
-                    )
+                    # Statistiques
+                    total_players = len(answers)
+                    good_answers = list(answers.values()).count(vip_choice)
+                    correct_stats = f"{good_answers} / {total_players}"
 
-                    me_text = (
-                        answers_list[player_choice]
-                        if isinstance(player_choice, int) and player_choice < len(answers_list)
-                        else "—"
-                    )
-
-                    total = len(answers_for_question)
-                    correct = sum(1 for c in answers_for_question.values() if c == vip_choice)
-
-                    points_value = q.get("points", 1)
-                    gained = points_value if (player_choice == vip_choice) else 0
-
-                    ok = player_choice == vip_choice if player_choice is not None else None
-
+                    # ======================================================
+                    # Affichage via QuestionCard
+                    # ======================================================
                     QuestionCard(
-                        number=q_idx + 1,
-                        question_text=q.get("text"),
+                        number=q_index + 1,
+                        question_text=question_text,
                         vip_text=vip_text,
-                        me_text=None if is_vip else me_text,
-                        ok=None if is_vip else ok,
-                        points=None if is_vip else gained,
-                        correct_stats=f"{correct}/{total}",
+                        me_text=player_text,
+                        ok=ok,
+                        points=gained_points,
+                        correct_stats=correct_stats,
                         is_vip=is_vip,
                     )()
-    
 
+                ui.label("GoldenQuizz © 2025").classes(
+                    theme.TEXT_FOOTER + " mt-8 text-center"
+                )

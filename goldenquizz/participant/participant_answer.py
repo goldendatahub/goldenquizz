@@ -9,7 +9,7 @@ def participant_answer_page(engine):
     @ui.page('/participant/answer')
     def participant_answer():
         name = app.storage.user.get("player_name", "Joueur")
-        pid = app.storage.user.get("player_id")
+        pid = str(app.storage.user.get("player_id"))
 
         last_q = {"value": engine.current_q}
 
@@ -29,8 +29,12 @@ def participant_answer_page(engine):
                 def refresh():
 
                     current_q = engine.current_q
+
+                    # 🔥 FORCE LES CLÉS EN STRING POUR ÉVITER LE BUG INT/STRING
                     answers_for_question = engine.answers.get(current_q, {})
-                    player_answer = answers_for_question.get(pid)
+                    normalized_answers = {str(k): v for k, v in answers_for_question.items()}
+
+                    player_answer = normalized_answers.get(pid)
 
                     # ---------------------------------------------------------
                     # 0. FIN DE PARTIE → aller vers participant_final
@@ -67,7 +71,7 @@ def participant_answer_page(engine):
                     if shown_result["done"]:
                         return
 
-                    vip_answer = answers_for_question.get(engine.vip_id)
+                    vip_answer = normalized_answers.get(str(engine.vip_id))
 
                     q = engine.get_current_question()
                     points = q.get("points", 0) if q else 0
@@ -80,10 +84,14 @@ def participant_answer_page(engine):
                         or []
                     )
 
-                    vip_text = answers_list[vip_answer] if vip_answer is not None else None
-                    player_text = answers_list[player_answer] if player_answer is not None else None
+                    vip_text = (
+                        answers_list[vip_answer] if vip_answer is not None else None
+                    )
+                    player_text = (
+                        answers_list[player_answer] if player_answer is not None else None
+                    )
 
-                    is_vip = (pid == engine.vip_id)
+                    is_vip = (pid == str(engine.vip_id))
 
                     if is_vip:
                         status_label.set_text(
@@ -117,4 +125,3 @@ def participant_answer_page(engine):
 
                 ui.label("GoldenQuizz © 2025") \
                     .classes(theme.TEXT_FOOTER + " mt-4")
-    
