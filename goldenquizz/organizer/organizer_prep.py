@@ -1,6 +1,5 @@
 from nicegui import ui
 
-
 def organizer_prep_page(engine):
 
     @ui.page("/organizer/prep")
@@ -17,7 +16,7 @@ def organizer_prep_page(engine):
         table = ui.table(
             columns=[
                 {"name": "name", "label": "Nom", "field": "name"},
-                {"name": "vip", "label": "VIP", "field": "vip"},  # ✅ Nouvelle colonne
+                {"name": "vip", "label": "VIP", "field": "vip"},
             ],
             rows=[],
         ).classes("w-full max-w-md mb-4")
@@ -31,7 +30,8 @@ def organizer_prep_page(engine):
             if not pid:
                 ui.notify("Veuillez sélectionner un joueur.", type="warning")
                 return
-            pid = int(pid)
+
+            # ❌ plus de conversion en int(pid)
             engine.set_vip(pid)
             ui.notify(f"{engine.players[pid]['name']} est maintenant le VIP 👑", type="positive")
 
@@ -49,9 +49,6 @@ def organizer_prep_page(engine):
         # --- Rafraîchissement dynamique
         def refresh():
             """Met à jour la liste des joueurs et le sélecteur VIP."""
-            if not engine.players:
-                return  # évite un rafraîchissement inutile
-
             rows = []
             for pid, p in engine.players.items():
                 rows.append({
@@ -60,14 +57,7 @@ def organizer_prep_page(engine):
                 })
             table.rows = rows
 
-            # Met à jour la liste du sélecteur VIP
-            vip_selector.options = {str(pid): p["name"] for pid, p in engine.players.items()}
-
-            # Synchronise la valeur sélectionnée avec le VIP actuel
-            if engine.vip_id and str(engine.vip_id) in vip_selector.options:
-                vip_selector.value = str(engine.vip_id)
-
+            vip_selector.options = {pid: p["name"] for pid, p in engine.players.items()}
             vip_selector.update()
 
-        # 🔁 Mise à jour toutes les 2 secondes
         ui.timer(2, refresh)
