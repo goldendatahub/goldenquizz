@@ -49,16 +49,25 @@ def organizer_prep_page(engine):
         # --- Rafraîchissement dynamique
         def refresh():
             """Met à jour la liste des joueurs et le sélecteur VIP."""
+            if not engine.players:
+                return  # évite un rafraîchissement inutile
+
             rows = []
             for pid, p in engine.players.items():
                 rows.append({
                     "name": p["name"],
-                    "vip": "👑" if p.get("is_vip") else "",  # ✅ affiche l’emoji VIP
+                    "vip": "👑" if p.get("is_vip") else "",
                 })
             table.rows = rows
 
-            # Rafraîchit les options du sélecteur VIP
+            # Met à jour la liste du sélecteur VIP
             vip_selector.options = {str(pid): p["name"] for pid, p in engine.players.items()}
+
+            # Synchronise la valeur sélectionnée avec le VIP actuel
+            if engine.vip_id and str(engine.vip_id) in vip_selector.options:
+                vip_selector.value = str(engine.vip_id)
+
             vip_selector.update()
 
-        # 🔁 Mise à jour toutes les 2 secondesui.timer(2, refresh)
+        # 🔁 Mise à jour toutes les 2 secondes
+        ui.timer(2, refresh)
