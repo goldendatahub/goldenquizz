@@ -4,35 +4,31 @@ from goldenquizz.ui.components import Card, Title, Subtitle, QuestionCard
 from goldenquizz.ui import theme
 
 
+
 def participant_final_page(engine):
 
     @ui.page("/participant/final")
     def participant_final():
 
+        print("RENDERING COLUMN")
+        with ui.column().classes("border border-red-500 p-2") as col:
+            ui.label("test")
+
         with mobile_layout():
 
+            # -----------------------------
+            # EN-TÊTE
+            # -----------------------------
             with Card()():
 
-                # ==========================================================
-                # DEBUG
-                # ==========================================================
-                print("DEBUG — answers =", engine.answers)
-                print("DEBUG — players =", engine.players)
-                print("DEBUG — current_q =", engine.current_q)
-
-                # ==========================================================
-                # Normalisation des IDs
-                # ==========================================================
                 pid = str(app.storage.user.get("player_id"))
                 name = app.storage.user.get("player_name", "Joueur")
                 vip_id = str(engine.vip_id)
-
                 is_vip = (pid == vip_id)
 
                 Title("🏁 Fin de la partie")()
                 Subtitle(f"Merci d’avoir joué, {name} !")()
 
-                # --- Classement (non-VIP seulement) ---
                 if not is_vip:
                     leaderboard = engine.leaderboard()
                     ui.label("🏆 Classement général").classes(
@@ -47,24 +43,23 @@ def participant_final_page(engine):
                     "text-2xl font-semibold text-amber-700 mt-6 mb-4 text-center"
                 )
 
-                # ==========================================================
-                # Boucle sur les questions
-                # ==========================================================
+            # ---------------------------------------------------
+            # CONTENEUR STABLE POUR LES CARTES
+            # ---------------------------------------------------
+            with ui.column().classes("w-full gap-2") as cards_container:
+
                 questions = engine.get_questions()
 
                 for q_index, q_data in enumerate(questions):
-                    
-                    question_text = q_data.get("text", "Question")
-                    points = q_data.get("points", 1)
 
-                    # Réponses pour cette question
                     raw_answers = engine.answers.get(q_index, {})
                     answers = {str(k): v for k, v in raw_answers.items()}
 
-                    # VIP
+                    question_text = q_data.get("text", "Question")
+                    points = q_data.get("points", 1)
+
                     vip_choice = answers.get(vip_id)
 
-                    # Liste d'options
                     options = (
                         q_data.get("options")
                         or q_data.get("answers")
@@ -74,25 +69,19 @@ def participant_final_page(engine):
                     )
                     vip_text = options[vip_choice] if vip_choice is not None else "—"
 
-                    # Joueur
                     player_choice = answers.get(pid)
                     player_text = options[player_choice] if player_choice is not None else None
 
-                    # Points
                     ok = None
                     gained_points = 0
                     if not is_vip and player_choice is not None and vip_choice is not None:
                         ok = (player_choice == vip_choice)
                         gained_points = points if ok else 0
 
-                    # Statistiques
-                    total_players = len(answers)
                     good_answers = list(answers.values()).count(vip_choice)
-                    correct_stats = f"{good_answers} / {total_players}"
+                    correct_stats = f"{good_answers} / {len(answers)}"
 
-                    # ======================================================
-                    # Affichage via QuestionCard
-                    # ======================================================
+                    # 🔥 ENFIN : affichage stable de la carte
                     QuestionCard(
                         number=q_index + 1,
                         question_text=question_text,
@@ -104,6 +93,6 @@ def participant_final_page(engine):
                         is_vip=is_vip,
                     )()
 
-                ui.label("GoldenQuizz © 2025").classes(
-                    theme.TEXT_FOOTER + " mt-8 text-center"
-                )
+            ui.label("GoldenQuizz © 2025").classes(
+                theme.TEXT_FOOTER + " mt-8 text-center"
+            )

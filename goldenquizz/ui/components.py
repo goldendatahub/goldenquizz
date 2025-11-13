@@ -51,15 +51,10 @@ def QuestionCard(
 
     base_color = "bg-purple-50" if is_vip else "bg-blue-50"
 
-    # ⚠️ Très important : NE PAS créer la carte ici
-    # On retourne une fonction que la page appellera elle-même.
-
     def _render():
-        card = ui.card().classes(
+        with ui.column().classes(
             f"rounded-xl shadow-md p-4 mb-4 w-full {base_color} {theme.CARD_FADE_IN}"
-        )
-
-        with card:
+        ) as card:
 
             ui.label(f"Question {number}").classes("text-lg font-bold text-gray-800")
             ui.label(question_text).classes("text-md text-gray-700 mt-2")

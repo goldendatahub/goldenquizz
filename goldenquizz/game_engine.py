@@ -15,6 +15,9 @@ class GameEngine:
 
     # ---------- CONFIG ----------
     def _load_yaml(self, path):
+        if not Path(path).exists():
+            print(f"⚠️ Attention: le fichier YAML '{path}' est introuvable !")
+            return {"questions": []}
         with open(path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
 
