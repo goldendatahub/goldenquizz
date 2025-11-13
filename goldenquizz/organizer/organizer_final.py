@@ -5,7 +5,7 @@ def organizer_final_page(engine):
     @ui.page("/organizer/final")
     def organizer_final():
         if engine.state != "finished":
-            ui.open(f"/organizer/{engine.state}")
+            ui.navigate.to(f"/organizer/{engine.state}")
             return
 
         leaderboard = engine.leaderboard()
