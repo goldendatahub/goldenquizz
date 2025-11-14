@@ -1,80 +1,91 @@
 from nicegui import ui
-import asyncio
+from goldenquizz.ui.layouts import organizer_layout, organizer_header, organizer_section
+from goldenquizz.ui.components import OrganizerTitle, OrganizerCard, OrganizerButton
 
 
 def organizer_question_page(engine):
 
     @ui.page("/organizer/question")
     def organizer_question():
-        ui.label("🎯 Question en cours").classes("text-2xl font-bold mb-4")
 
-        # Zone d'affichage de la question
-        question_label = ui.label("").classes("text-xl mt-4 font-semibold text-blue-800")
+        with organizer_layout():
 
-        # Conteneur pour les réponses
-        answers_container = ui.column().classes("mt-4 gap-2")
+            # ---------------- HEADER ----------------
+            with organizer_header():
+                OrganizerTitle("🎯 Question en cours")()
+                ui.label("Mode organisateur").classes("text-md text-gray-500 italic")
 
-        # Bouton de clôture
-        ui.button("Clôturer les réponses", on_click=lambda: close_question()).props("color=primary")
+            # ---------------- QUESTION ----------------
+            with OrganizerCard()():
+                question_label = ui.label("").classes(
+                    "text-2xl font-semibold text-blue-800 mb-4"
+                )
 
-        # Variable pour suivre la dernière question affichée
-        last_q_index = {'value': None}
+                answers_container = ui.column().classes("mt-6 gap-3 w-full")
 
-        # --- Fonction pour afficher la question en cours ---
-        def show_current_question():
-            q = engine.get_current_question()
-            if not q:
-                question_label.set_text("⏳ Aucune question active.")
-                answers_container.clear()
-                return
+                # Bouton de clôture
+                def close_question():
+                    result = engine.close_question()
+                    if not result:
+                        ui.notify("⚠️ Aucune question active à clôturer.", type="warning")
+                        return
 
-            # 🔁 Si c’est la même question qu’avant, ne pas redessiner
-            if last_q_index['value'] == engine.current_q:
-                return
-            last_q_index['value'] = engine.current_q
+                    ui.notify("🔒 Question clôturée, calcul des scores...", type="info")
+                    ui.timer(1.0, lambda: ui.navigate.to("/organizer/results"), once=True)
 
-            # Nettoyage du conteneur
-            answers_container.clear()
+                OrganizerButton("Clôturer les réponses", close_question)().classes(
+                    "mt-6 bg-red-600 hover:bg-red-700"
+                )
 
-            question_label.set_text(f"❓ {q.get('text', 'Question')}")
-            answers = (
-                q.get("answers")
-                or q.get("options")
-                or q.get("reponses")
-                or q.get("choices")
-                or []
-            )
+                # Variable de contrôle
+                last_q_index = {'value': None}
 
-            if not answers:
-                with answers_container:
-                    ui.label("⚠️ Aucune réponse configurée.").classes("text-red-600 mt-2")
-                return
+                # Fonction d'affichage
+                def show_current_question():
+                    q = engine.get_current_question()
+                    if not q:
+                        question_label.set_text("⏳ Aucune question active.")
+                        answers_container.clear()
+                        return
 
-            # ✅ Utilise le contexte pour ajouter les boutons dans la colonne
-            with answers_container:
-                for i, answer in enumerate(answers, start=1):
-                    ui.button(
-                        f"{i}. {answer}",
-                        on_click=None,
-                    ).props(
-                        f"color={['orange', 'blue', 'green', 'purple'][i % 4]} outline"
-                    ).classes("w-full max-w-md").disable()
+                    if last_q_index['value'] == engine.current_q:
+                        return
 
-        # --- Clôture de la question ---
-        def close_question():
-            """Ferme la question et affiche la page de résultats."""
-            result = engine.close_question()
-            if not result:
-                ui.notify("⚠️ Aucune question active à clôturer.", type="warning")
-                return
+                    last_q_index['value'] = engine.current_q
 
-            ui.notify("🔒 Question clôturée, calcul des scores...", type="info")
-            # ⏳ attendre un peu, puis rediriger sans tâche asynchrone
-            ui.timer(1.0, lambda: ui.navigate.to("/organizer/results"), once=True)
+                    answers_container.clear()
 
+                    question_label.set_text(f"❓ {q.get('text', 'Question')}")
 
-        # Premier affichage
-        show_current_question()
+                    answers = (
+                        q.get("answers")
+                        or q.get("options")
+                        or q.get("reponses")
+                        or q.get("choices")
+                        or []
+                    )
 
-        # Rafraîchissement toutes les 3 secondes
-        ui.timer(3, show_current_question)
+                    if not answers:
+                        with answers_container:
+                            ui.label("⚠️ Aucune réponse configurée.").classes(
+                                "text-red-600 mt-2"
+                            )
+                        return
+
+                    # Construction UI
+                    with answers_container:
+                        for i, answer in enumerate(answers, start=1):
+                            ui.button(
+                                f"{i}. {answer}",
+                                on_click=None,
+                            ).props(
+                                f"color={['orange', 'blue', 'green', 'purple'][i % 4]} outline"
+                            ).classes(
+                                "w-full max-w-xl py-3 text-lg font-semibold"
+                            ).disable()
+
+                # Premier affichage
+                show_current_question()
+
+                # Timer
+                ui.timer(3, show_current_question)

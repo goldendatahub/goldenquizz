@@ -32,21 +32,59 @@ def home_page():
     # ---------------------------------------------------------
     ui.add_head_html(f"<style>{GLOBAL_CSS}</style>")
 
-    ui.label("🎉 Bienvenue sur GoldenQuizz !") \
-        .classes("text-3xl font-bold mt-10 text-center text-amber-700")
+    # ---------------------------------------------------------
+    #   CONTENU CENTRÉ & MODERNE
+    # ---------------------------------------------------------
+    with ui.column().classes(
+        "min-h-screen w-full flex items-center justify-center bg-gray-100 p-8"
+    ):
 
-    ui.label("Le quiz interactif pour découvrir qui connaît le mieux le VIP !") \
-        .classes("text-lg text-gray-600 mb-8 text-center")
+        with ui.card().classes(
+            "bg-white p-10 rounded-2xl shadow-2xl w-full max-w-2xl animate-fadeIn flex flex-col items-center gap-6"
+        ):
 
-    with ui.column().classes("items-center gap-4"):
-        ui.link("👑 Interface Organisateur", "/organizer/prep") \
-            .classes("text-blue-600 block mt-4")
-        ui.link("📱 Interface Participant", "/participant/connect") \
-            .classes("text-green-600 block mt-2")
+            # ---- TITRE PRINCIPAL ----
+            ui.label("🎉 GoldenQuizz").classes(
+                "text-5xl font-extrabold text-blue-700 text-center tracking-tight"
+            )
 
-    ui.label("© GoldenQuizz 2025").classes(
-        "mt-10 text-gray-400 text-sm text-center"
-    )
+            ui.label("Le quiz interactif 👑").classes(
+                "text-xl text-gray-600 text-center -mt-4"
+            )
+
+            ui.separator().classes("w-1/2 my-4")
+
+            # ---- DESCRIPTION ----
+            ui.label(
+                "Choisissez votre rôle pour commencer l'expérience."
+            ).classes("text-gray-600 text-center text-lg")
+
+            # ---- BOUTONS ----
+            with ui.column().classes("w-full items-center gap-4 mt-6"):
+
+                #  Ajoute  emoji  personne
+                ui.link("Je suis Participant", "/participant/connect") \
+                    .classes(
+                        "bg-green-600 hover:bg-green-700 text-white font-semibold "
+                        "text-lg py-3 px-6 rounded-xl shadow-md transition w-64 text-center "
+                        "no-underline"
+                    )
+                
+                # Ajoute emoji organisateur
+                ui.link("Je suis Organisateur", "/organizer/prep") \
+                    .classes(
+                        "bg-blue-600 hover:bg-blue-700 text-white font-semibold "
+                        "text-lg py-3 px-6 rounded-xl shadow-md transition w-64 text-center "
+                        "no-underline"
+                    )
+
+
+
+            # ---- FOOTER ----
+            ui.label("© GoldenQuizz 2025").classes(
+                "mt-8 text-gray-400 text-sm text-center"
+            )
+
 
 # -----------------------------------------------------
 #   PAGES ORGANISATEUR

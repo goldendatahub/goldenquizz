@@ -76,3 +76,30 @@ def QuestionCard(
         return card
 
     return _render
+
+def OrganizerTitle(text: str):
+    """Titre principal pour les pages organisateur"""
+    def _title():
+        return ui.label(text).classes(
+            "text-4xl font-extrabold text-blue-700 tracking-tight"
+        )
+    return _title
+
+
+def OrganizerCard():
+    """Grande carte desktop pour les pages organisateur"""
+    def _card():
+        return ui.card().classes(
+            "bg-white p-10 rounded-2xl shadow-2xl w-full animate-fadeIn"
+        )
+    return _card
+
+
+def OrganizerButton(label: str, on_click=None):
+    """Bouton principal pour organisateur"""
+    def _button():
+        return ui.button(label, on_click=on_click).classes(
+            "bg-blue-600 hover:bg-blue-700 text-white font-bold "
+            "text-xl py-3 px-8 rounded-xl shadow-lg"
+        )
+    return _button
