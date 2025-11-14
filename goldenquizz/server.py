@@ -108,6 +108,6 @@ participant_final_page(engine)
 # ---------------------------------------------------------
 ui.run(
     title="GoldenQuizz",
-    reload=False,
+    reload=True,
     storage_secret="goldenquizz-secret-key-1234"
 )

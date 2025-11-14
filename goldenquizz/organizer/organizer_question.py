@@ -1,5 +1,5 @@
 from nicegui import ui
-from goldenquizz.ui.layouts import organizer_layout, organizer_header, organizer_section
+from goldenquizz.ui.layouts import organizer_layout, organizer_header
 from goldenquizz.ui.components import OrganizerTitle, OrganizerCard, OrganizerButton
 
 
@@ -12,16 +12,19 @@ def organizer_question_page(engine):
 
             # ---------------- HEADER ----------------
             with organizer_header():
-                OrganizerTitle("🎯 Question en cours")()
+                OrganizerTitle(f"🎯 Question numéro {engine.current_q + 1}")()
                 ui.label("Mode organisateur").classes("text-md text-gray-500 italic")
 
-            # ---------------- QUESTION ----------------
+            # ---------------- QUESTION + ANSWERS ----------------
             with OrganizerCard()():
+
+                # Question
                 question_label = ui.label("").classes(
-                    "text-2xl font-semibold text-blue-800 mb-4"
+                    "text-2xl font-semibold text-blue-800 mb-6"
                 )
 
-                answers_container = ui.column().classes("mt-6 gap-3 w-full")
+                # Conteneur réponses
+                answers_container = ui.column().classes("mt-4 gap-3 w-full")
 
                 # Bouton de clôture
                 def close_question():
@@ -37,10 +40,10 @@ def organizer_question_page(engine):
                     "mt-6 bg-red-600 hover:bg-red-700"
                 )
 
-                # Variable de contrôle
+                # Pour éviter redessiner
                 last_q_index = {'value': None}
 
-                # Fonction d'affichage
+                # ----- Fonction d'affichage -----
                 def show_current_question():
                     q = engine.get_current_question()
                     if not q:
@@ -48,14 +51,13 @@ def organizer_question_page(engine):
                         answers_container.clear()
                         return
 
+                    # Pas de redraw inutile
                     if last_q_index['value'] == engine.current_q:
                         return
-
                     last_q_index['value'] = engine.current_q
 
                     answers_container.clear()
-
-                    question_label.set_text(f"❓ {q.get('text', 'Question')}")
+                    question_label.set_text(q.get("text", "❓ Question"))
 
                     answers = (
                         q.get("answers")
@@ -72,20 +74,86 @@ def organizer_question_page(engine):
                             )
                         return
 
-                    # Construction UI
+                    # Réponses façon participant (PrimaryButton-like)
                     with answers_container:
                         for i, answer in enumerate(answers, start=1):
                             ui.button(
                                 f"{i}. {answer}",
                                 on_click=None,
-                            ).props(
-                                f"color={['orange', 'blue', 'green', 'purple'][i % 4]} outline"
                             ).classes(
-                                "w-full max-w-xl py-3 text-lg font-semibold"
+                                "w-full max-w-2xl py-4 px-4 rounded-xl text-xl font-bold "
+                                "bg-blue-600 text-white shadow-lg border border-blue-800 "
+                                "opacity-50"
                             ).disable()
+
+
+
+
+
+
 
                 # Premier affichage
                 show_current_question()
 
-                # Timer
-                ui.timer(3, show_current_question)
+                # Refresh question
+                ui.timer(2, show_current_question)
+
+            # --------------------------------------------------------------
+            # SECTION : joueurs ayant répondu & n'ayant pas répondu
+            # --------------------------------------------------------------
+
+            # Conteneurs (mêmes styles que PREP)
+            with OrganizerCard()():
+                ui.label("🟢 Participants ayant répondu").classes(
+                    "text-2xl font-bold text-green-700 mb-4"
+                )
+                answered_container = ui.row().classes("w-full flex-wrap gap-4")
+
+            with OrganizerCard()():
+                ui.label("🟠 En attente de réponse").classes(
+                    "text-2xl font-bold text-amber-700 mb-4"
+                )
+                pending_container = ui.row().classes("w-full flex-wrap gap-4")
+
+            # ----- REFRESH PARTICIPANTS -----
+            def refresh_participants():
+                # Liste brute des réponses
+                raw_answers = engine.answers.get(engine.current_q, {})
+
+                answered_container.clear()
+                pending_container.clear()
+
+                for pid, p in engine.players.items():
+                    name = p["name"]
+                    is_vip = p.get("is_vip")
+
+                    if str(pid) in raw_answers:   # joueur a répondu
+                        with answered_container:
+                            with ui.column().classes(
+                                "p-4 bg-green-50 rounded-xl shadow-md items-center w-40 "
+                                "border border-green-200 animate-fadeIn"
+                            ):
+                                ui.label(name).classes(
+                                    "text-lg font-bold text-green-800 text-center"
+                                )
+                                if is_vip:
+                                    ui.label("👑 VIP").classes(
+                                        "text-yellow-600 font-semibold"
+                                    )
+
+                    else:   # joueur en attente
+                        with pending_container:
+                            with ui.column().classes(
+                                "p-4 bg-amber-50 rounded-xl shadow-md items-center w-40 "
+                                "border border-amber-200 animate-fadeIn"
+                            ):
+                                ui.label(name).classes(
+                                    "text-lg font-bold text-amber-800 text-center"
+                                )
+                                if is_vip:
+                                    ui.label("👑 VIP").classes(
+                                        "text-yellow-600 font-semibold"
+                                    )
+
+            # Refresh live
+            ui.timer(1.0, refresh_participants)

@@ -15,23 +15,19 @@ def organizer_prep_page(engine):
 
             # ---------------- HEADER ----------------
             with organizer_header():
-                OrganizerTitle("🎛️ Préparation de la partie")()
+                OrganizerTitle("🛠️ Préparation de la partie")()
                 ui.label("Mode organisateur").classes("text-md text-gray-500 italic")
 
             # ---------------- JOUEURS ----------------
             with OrganizerCard()():
-                ui.label("👥 Joueurs connectés").classes(
+                ui.label("📋 Joueurs connectés").classes(
                     "text-2xl font-bold text-blue-700 mb-4"
                 )
-                table = ui.table(
-                    columns=[
-                        {"name": "name", "label": "Nom", "field": "name"},
-                        {"name": "vip", "label": "VIP", "field": "vip"},
-                    ],
-                    rows=[],
-                ).classes(
-                    "w-full border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition"
+
+                players_container = ui.row().classes(
+                    "w-full flex-wrap gap-4 mt-4"
                 )
+
 
             # ---------------- VIP ----------------
             with OrganizerCard()():
@@ -73,13 +69,24 @@ def organizer_prep_page(engine):
 
             # ---------------- REFRESH ----------------
             def refresh():
-                rows = []
+                players_container.clear()
                 for pid, p in engine.players.items():
-                    rows.append({
-                        "name": p["name"],
-                        "vip": "👑" if p.get("is_vip") else "",
-                    })
-                table.rows = rows
+                    is_vip = p.get("is_vip")
+
+                    with players_container:
+                        with ui.column().classes(
+                            "p-4 bg-blue-50 rounded-xl shadow-md items-center w-40 border "
+                            "border-blue-200 animate-fadeIn"
+                        ):
+                            ui.label(p["name"]).classes(
+                                "text-lg font-bold text-blue-800 text-center"
+                            )
+
+                            if is_vip:
+                                ui.label("👑 VIP").classes(
+                                    "text-yellow-600 font-semibold mt-1"
+                                )
+
 
                 vip_selector.options = {
                     pid: p["name"] for pid, p in engine.players.items()
