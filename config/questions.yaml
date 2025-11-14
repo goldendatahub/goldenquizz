@@ -3,6 +3,7 @@ game:
 
 questions:
   - text: "Quel est le plat préféré du VIP ?"
+    image: "https://www.kikkoman.fr/fileadmin/_processed_/4/2/csm_sushi-kakkoii_2c56fe3133.webp"
     options:
       - "Pizza"
       - "Sushi"

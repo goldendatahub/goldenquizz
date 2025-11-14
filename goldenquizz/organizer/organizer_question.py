@@ -18,15 +18,22 @@ def organizer_question_page(engine):
             # ---------------- QUESTION + ANSWERS ----------------
             with OrganizerCard()():
 
-                # Question
+                # Question (toujours tout en haut)
                 question_label = ui.label("").classes(
-                    "text-2xl font-semibold text-blue-800 mb-6"
+                    "text-2xl font-semibold text-blue-800 mb-4"
                 )
 
-                # Conteneur réponses
-                answers_container = ui.column().classes("mt-4 gap-3 w-full")
+                # 🔥 Conteneur image juste sous la question
+                image_container = ui.column().classes(
+                    "w-full items-center mb-6"
+                )
 
-                # Bouton de clôture
+                # Conteneur des réponses sous l’image
+                answers_container = ui.column().classes(
+                    "mt-2 gap-3 w-full"
+                )
+
+                # Bouton de clôture TOUT EN BAS
                 def close_question():
                     result = engine.close_question()
                     if not result:
@@ -40,25 +47,40 @@ def organizer_question_page(engine):
                     "mt-6 bg-red-600 hover:bg-red-700"
                 )
 
-                # Pour éviter redessiner
+                # Mémorisation pour éviter redraw inutile
                 last_q_index = {'value': None}
 
-                # ----- Fonction d'affichage -----
+                # Fonction d’affichage
                 def show_current_question():
                     q = engine.get_current_question()
                     if not q:
                         question_label.set_text("⏳ Aucune question active.")
                         answers_container.clear()
+                        image_container.clear()
                         return
 
-                    # Pas de redraw inutile
                     if last_q_index['value'] == engine.current_q:
                         return
                     last_q_index['value'] = engine.current_q
 
+                    # Reset contenu visuel (sans casser l’ordre)
                     answers_container.clear()
+                    image_container.clear()
+
+                    # 1) QUESTION
                     question_label.set_text(q.get("text", "❓ Question"))
 
+                    # 2) IMAGE (si présente et autorisée)
+                    image_url = q.get("image")
+                    allowed_ext = (".jpg", ".jpeg", ".png", ".gif", ".webp")
+
+                    if isinstance(image_url, str) and image_url.lower().endswith(allowed_ext):
+                        with image_container:
+                            ui.image(image_url).classes(
+                                "max-h-64 object-contain rounded-xl shadow-md border"
+                            ).style("max-width: 100%;")
+
+                    # 3) RÉPONSES
                     answers = (
                         q.get("answers")
                         or q.get("options")
@@ -69,12 +91,9 @@ def organizer_question_page(engine):
 
                     if not answers:
                         with answers_container:
-                            ui.label("⚠️ Aucune réponse configurée.").classes(
-                                "text-red-600 mt-2"
-                            )
+                            ui.label("⚠️ Aucune réponse configurée.").classes("text-red-600 mt-2")
                         return
 
-                    # Réponses façon participant (PrimaryButton-like)
                     with answers_container:
                         for i, answer in enumerate(answers, start=1):
                             ui.button(
@@ -87,22 +106,17 @@ def organizer_question_page(engine):
                             ).disable()
 
 
-
-
-
-
-
                 # Premier affichage
                 show_current_question()
 
                 # Refresh question
                 ui.timer(2, show_current_question)
 
+
             # --------------------------------------------------------------
             # SECTION : joueurs ayant répondu & n'ayant pas répondu
             # --------------------------------------------------------------
 
-            # Conteneurs (mêmes styles que PREP)
             with OrganizerCard()():
                 ui.label("🟢 Participants ayant répondu").classes(
                     "text-2xl font-bold text-green-700 mb-4"
@@ -117,7 +131,6 @@ def organizer_question_page(engine):
 
             # ----- REFRESH PARTICIPANTS -----
             def refresh_participants():
-                # Liste brute des réponses
                 raw_answers = engine.answers.get(engine.current_q, {})
 
                 answered_container.clear()
@@ -155,5 +168,4 @@ def organizer_question_page(engine):
                                         "text-yellow-600 font-semibold"
                                     )
 
-            # Refresh live
             ui.timer(1.0, refresh_participants)
