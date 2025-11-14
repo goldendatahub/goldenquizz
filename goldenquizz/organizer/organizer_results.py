@@ -19,7 +19,7 @@ def organizer_results_page(engine):
             return
 
         # ------------------------------------------------------------------
-        # Récupération question + réponses possibles
+        # QUESTION + LISTE DES REPONSES
         # ------------------------------------------------------------------
         q = engine.get_current_question()
         answers_list = (
@@ -30,10 +30,16 @@ def organizer_results_page(engine):
             or []
         )
 
-        # Réponse VIP (index)
-        vip_index = None
-        if summary["stats"] and isinstance(summary["stats"][0]["answer"], int):
-            vip_index = summary["stats"][0]["answer"]
+        # ------------------------------------------------------------------
+        # VRAIE REPONSE DU VIP = depuis engine.answers
+        # ------------------------------------------------------------------
+        vip_id = str(engine.vip_id)
+        raw_answers = engine.answers.get(engine.current_q, {})
+
+        if vip_id in raw_answers:
+            vip_index = raw_answers[vip_id]
+        else:
+            vip_index = None
 
         vip_text = (
             answers_list[vip_index]
@@ -42,11 +48,11 @@ def organizer_results_page(engine):
         )
 
         # ------------------------------------------------------------------
-        # Comptage votes NON-VIP uniquement
+        # Votes exclusifs des NON-VIP
         # ------------------------------------------------------------------
         non_vip_players = {
             pid for pid in engine.players.keys()
-            if str(pid) != str(engine.vip_id)
+            if str(pid) != vip_id
         }
 
         detailed_answers = engine.answers.get(engine.current_q, {})
@@ -81,7 +87,7 @@ def organizer_results_page(engine):
             ))
 
         # ------------------------------------------------------------------
-        # HISTOGRAMME façon "TV game show"
+        # HISTOGRAMME STYLE TV SHOW
         # ------------------------------------------------------------------
         fig = go.Figure()
 
@@ -93,10 +99,8 @@ def organizer_results_page(engine):
             marker=dict(
                 color=bar_colors,
                 line=dict(width=0),
-                # Arrondi des barres
-                pattern=None,
             ),
-            hoverinfo="skip",      # Pas d'info-bulle informatique
+            hoverinfo="skip",
             name="Votes",
         ))
 
@@ -108,24 +112,18 @@ def organizer_results_page(engine):
             showlegend=True,
         ))
 
-        # ---------------- STYLE TV ----------------
+        max_votes = max(votes_by_answer.values()) if votes_by_answer else 1
+
         fig.update_layout(
-            paper_bgcolor="rgba(0,0,0,0)",      # Fond transparent
-            plot_bgcolor="white",               # Pas de couleurs parasites
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="white",
             font=dict(
-                family="Montserrat, Arial, sans-serif",  # Police moderne
+                family="Montserrat, Arial, sans-serif",
                 size=16,
                 color="black",
             ),
-
-            yaxis=dict(
-                visible=False,                 # Masque totalement l’axe Y
-            ),
-            xaxis=dict(
-                title="",                      # Pas de titre
-                tickfont=dict(size=16),
-            ),
-
+            yaxis=dict(visible=False),
+            xaxis=dict(title="", tickfont=dict(size=16)),
             showlegend=True,
             legend=dict(
                 orientation="h",
@@ -134,7 +132,6 @@ def organizer_results_page(engine):
                 xanchor="center",
                 font=dict(size=14, family="Montserrat, Arial"),
             ),
-
             annotations=annotations,
             margin=dict(t=10, b=80, l=10, r=10),
             height=450,
@@ -152,9 +149,6 @@ def organizer_results_page(engine):
         ]
         leaderboard_no_vip.sort(key=lambda x: x["score"], reverse=True)
 
-        # ------------------------------------------------------------------
-        # DISPLAY PAGE
-        # ------------------------------------------------------------------
         with organizer_layout():
 
             # ---------------- HEADER ----------------
@@ -173,9 +167,7 @@ def organizer_results_page(engine):
 
             # ---------------- HISTOGRAMME ----------------
             with OrganizerCard()():
-                ui.plotly(fig).classes(
-                    "w-full max-w-3xl mx-auto"
-                )
+                ui.plotly(fig).classes("w-full max-w-3xl mx-auto")
 
             # ---------------- CLASSEMENT ----------------
             with OrganizerCard()():

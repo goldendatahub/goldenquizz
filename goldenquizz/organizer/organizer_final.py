@@ -17,7 +17,10 @@ def organizer_final_page(engine):
             ui.label("Aucun joueur à afficher.")
             return
 
-        winner = leaderboard[0]["name"]
+        # Tri du classement final (score desc)
+        leaderboard_sorted = sorted(leaderboard, key=lambda x: x["score"], reverse=True)
+
+        winner = leaderboard_sorted[0]["name"]
 
         with organizer_layout():
 
@@ -34,20 +37,32 @@ def organizer_final_page(engine):
 
             # ---------------- LEADERBOARD ----------------
             with OrganizerCard()():
+
                 ui.label("🏅 Classement final").classes(
                     "text-2xl font-bold text-blue-700 mb-4"
                 )
 
-                ui.table(
-                    columns=[
-                        {"name": "name", "label": "Nom", "field": "name"},
-                        {"name": "score", "label": "Score", "field": "score"},
-                    ],
-                    rows=leaderboard,
-                ).classes(
-                    "w-full max-w-xl border border-gray-200 rounded-xl shadow-sm "
-                    "hover:shadow-md transition"
-                )
+                container = ui.column().classes("w-full gap-4")
+
+                position = 1
+                for entry in leaderboard_sorted:
+                    name = entry["name"]
+                    score = entry["score"]
+
+                    with container:
+                        # même style que organizer_results
+                        with ui.row().classes(
+                            "items-center justify-between bg-white border "
+                            "border-gray-300 rounded-xl shadow-sm p-4 w-full "
+                        ):
+                            ui.label(f"#{position} — {name}").classes(
+                                "text-lg font-bold text-gray-800"
+                            )
+                            ui.label(f"{score} pts").classes(
+                                "text-lg font-semibold text-blue-700"
+                            )
+
+                    position += 1
 
             # ---------------- RESTART BUTTON ----------------
             with OrganizerCard()():

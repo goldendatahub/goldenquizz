@@ -36,7 +36,7 @@ def organizer_question_page(engine):
                     ui.notify("🔒 Question clôturée, calcul des scores...", type="info")
                     ui.timer(1.0, lambda: ui.navigate.to("/organizer/results"), once=True)
 
-                OrganizerButton("Clôturer les réponses", close_question)().classes(
+                OrganizerButton("Clôturer la question", close_question)().classes(
                     "mt-6 bg-red-600 hover:bg-red-700"
                 )
 
