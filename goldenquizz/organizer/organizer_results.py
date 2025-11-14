@@ -1,7 +1,7 @@
 from nicegui import ui
 import plotly.graph_objects as go
 
-from goldenquizz.ui.layouts import organizer_layout, organizer_header, organizer_section
+from goldenquizz.ui.layouts import organizer_layout, organizer_header
 from goldenquizz.ui.components import OrganizerTitle, OrganizerCard, OrganizerButton
 
 
@@ -18,6 +18,143 @@ def organizer_results_page(engine):
             ui.label("Aucun résultat à afficher.")
             return
 
+        # ------------------------------------------------------------------
+        # Récupération question + réponses possibles
+        # ------------------------------------------------------------------
+        q = engine.get_current_question()
+        answers_list = (
+            q.get("answers")
+            or q.get("options")
+            or q.get("reponses")
+            or q.get("choices")
+            or []
+        )
+
+        # Réponse VIP (index)
+        vip_index = None
+        if summary["stats"] and isinstance(summary["stats"][0]["answer"], int):
+            vip_index = summary["stats"][0]["answer"]
+
+        vip_text = (
+            answers_list[vip_index]
+            if vip_index is not None and 0 <= vip_index < len(answers_list)
+            else "Non répondu"
+        )
+
+        # ------------------------------------------------------------------
+        # Comptage votes NON-VIP uniquement
+        # ------------------------------------------------------------------
+        non_vip_players = {
+            pid for pid in engine.players.keys()
+            if str(pid) != str(engine.vip_id)
+        }
+
+        detailed_answers = engine.answers.get(engine.current_q, {})
+
+        votes_by_answer = {i: 0 for i in range(len(answers_list))}
+        for pid, choice in detailed_answers.items():
+            if str(pid) in non_vip_players and 0 <= choice < len(answers_list):
+                votes_by_answer[choice] += 1
+
+        text_values = [str(votes_by_answer[i]) for i in range(len(answers_list))]
+
+        # Couleurs : VIP = rouge, autres = bleu
+        bar_colors = [
+            "crimson" if i == vip_index else "royalblue"
+            for i in range(len(answers_list))
+        ]
+
+        # Halo autour de la barre VIP
+        annotations = []
+        if vip_index is not None and 0 <= vip_index < len(answers_list):
+            annotations.append(dict(
+                x=answers_list[vip_index],
+                y=votes_by_answer[vip_index],
+                xref="x",
+                yref="y",
+                text="",
+                showarrow=False,
+                bgcolor="rgba(255,0,0,0.18)",
+                bordercolor="crimson",
+                borderwidth=3,
+                opacity=0.9,
+            ))
+
+        # ------------------------------------------------------------------
+        # HISTOGRAMME façon "TV game show"
+        # ------------------------------------------------------------------
+        fig = go.Figure()
+
+        fig.add_trace(go.Bar(
+            x=answers_list,
+            y=[votes_by_answer[i] for i in range(len(answers_list))],
+            text=text_values,
+            textposition="outside",
+            marker=dict(
+                color=bar_colors,
+                line=dict(width=0),
+                # Arrondi des barres
+                pattern=None,
+            ),
+            hoverinfo="skip",      # Pas d'info-bulle informatique
+            name="Votes",
+        ))
+
+        fig.add_trace(go.Bar(
+            x=[None],
+            y=[None],
+            marker_color="crimson",
+            name="Réponse VIP",
+            showlegend=True,
+        ))
+
+        # ---------------- STYLE TV ----------------
+        fig.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)",      # Fond transparent
+            plot_bgcolor="white",               # Pas de couleurs parasites
+            font=dict(
+                family="Montserrat, Arial, sans-serif",  # Police moderne
+                size=16,
+                color="black",
+            ),
+
+            yaxis=dict(
+                visible=False,                 # Masque totalement l’axe Y
+            ),
+            xaxis=dict(
+                title="",                      # Pas de titre
+                tickfont=dict(size=16),
+            ),
+
+            showlegend=True,
+            legend=dict(
+                orientation="h",
+                y=-0.25,
+                x=0.5,
+                xanchor="center",
+                font=dict(size=14, family="Montserrat, Arial"),
+            ),
+
+            annotations=annotations,
+            margin=dict(t=10, b=80, l=10, r=10),
+            height=450,
+        )
+
+        # ------------------------------------------------------------------
+        # CLASSEMENT (hors VIP)
+        # ------------------------------------------------------------------
+        leaderboard = summary["leaderboard"]
+        vip_name = engine.players[engine.vip_id]["name"]
+
+        leaderboard_no_vip = [
+            entry for entry in leaderboard
+            if entry["name"] != vip_name
+        ]
+        leaderboard_no_vip.sort(key=lambda x: x["score"], reverse=True)
+
+        # ------------------------------------------------------------------
+        # DISPLAY PAGE
+        # ------------------------------------------------------------------
         with organizer_layout():
 
             # ---------------- HEADER ----------------
@@ -25,66 +162,46 @@ def organizer_results_page(engine):
                 OrganizerTitle(f"📊 Résultats – Question {engine.current_q + 1}")()
                 ui.label("Analyse en direct").classes("text-md text-gray-500 italic")
 
-            # ---------------- VIP ANSWER ----------------
+            # ---------------- QUESTION + VIP ----------------
             with OrganizerCard()():
-
-                # Reconstruction locale si nécessaire
-                vip_answer = summary["vip_answer"]
-                if vip_answer == "Non répondu":
-                    q = engine.get_current_question()
-                    answers = (
-                        q.get("answers")
-                        or q.get("options")
-                        or q.get("reponses")
-                        or q.get("choices")
-                        or []
-                    )
-
-                    if summary["stats"] and isinstance(summary["stats"][0]["answer"], int):
-                        vip_index = summary["stats"][0]["answer"]
-                        if 0 <= vip_index < len(answers):
-                            vip_answer = answers[vip_index]
-
-                ui.label(f"👑 Réponse du VIP : {vip_answer}").classes(
-                    "text-2xl font-bold text-blue-700 mb-4"
+                ui.label(summary["question"]).classes(
+                    "text-xl font-semibold text-gray-700 mb-2"
+                )
+                ui.label(f"👑 Réponse du VIP : {vip_text}").classes(
+                    "text-2xl font-bold text-blue-700 mb-2"
                 )
 
-
-            # ---------------- GRAPHIQUE ----------------
+            # ---------------- HISTOGRAMME ----------------
             with OrganizerCard()():
-                labels = [item["answer"] for item in summary["stats"]]
-                values = [item["count"] for item in summary["stats"]]
-
-                fig = go.Figure(
-                    data=[go.Pie(
-                        labels=labels,
-                        values=values,
-                        textinfo='label+percent',
-                        hole=0.3,
-                    )]
-                )
-                fig.update_layout(
-                    margin=dict(t=10, b=10, l=10, r=10),
+                ui.plotly(fig).classes(
+                    "w-full max-w-3xl mx-auto"
                 )
 
-                ui.plotly(fig).classes("w-full max-w-3xl mx-auto")
-
-            # ---------------- LEADERBOARD ----------------
+            # ---------------- CLASSEMENT ----------------
             with OrganizerCard()():
                 ui.label("🏅 Classement actuel").classes(
                     "text-2xl font-bold text-blue-700 mb-4"
                 )
 
-                table = ui.table(
-                    columns=[
-                        {"name": "name", "label": "Nom", "field": "name"},
-                        {"name": "score", "label": "Score", "field": "score"},
-                    ],
-                    rows=summary["leaderboard"],
-                ).classes(
-                    "w-full max-w-xl border border-gray-200 rounded-xl shadow-sm "
-                    "hover:shadow-md transition"
-                )
+                container = ui.column().classes("w-full gap-4")
+
+                position = 1
+                for entry in leaderboard_no_vip:
+                    name = entry["name"]
+                    score = entry["score"]
+
+                    with container:
+                        with ui.row().classes(
+                            "items-center justify-between bg-white border "
+                            "border-gray-300 rounded-xl shadow-sm p-4 w-full "
+                        ):
+                            ui.label(f"#{position} — {name}").classes(
+                                "text-lg font-bold text-gray-800"
+                            )
+                            ui.label(f"{score} pts").classes(
+                                "text-lg font-semibold text-blue-700"
+                            )
+                    position += 1
 
             # ---------------- NEXT BUTTON ----------------
             with OrganizerCard()():
@@ -97,12 +214,10 @@ def organizer_results_page(engine):
                         engine.state = "finished"
                         ui.navigate.to("/organizer/final")
 
-                is_last = engine.current_q + 1 == len(engine.get_questions())
-
-                label = "🏁 Terminer la partie" if is_last else "⏭️ Question suivante"
+                last = engine.current_q + 1 == len(engine.get_questions())
+                label = "🏁 Terminer la partie" if last else "⏭️ Question suivante"
 
                 OrganizerButton(label, next_or_finish)().classes(
                     "mt-4 bg-purple-600 hover:bg-purple-700"
-                    if is_last
-                    else "mt-4"
+                    if last else "mt-4"
                 )
