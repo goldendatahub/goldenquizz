@@ -51,6 +51,75 @@ def organizer_prep_page(engine):
 
                 OrganizerButton("Valider le VIP", define_vip)().classes("mt-4")
 
+                        # ---------------- QUESTIONS YAML (pliable) ----------------
+            with OrganizerCard()():
+
+                ui.label("📝 Liste des questions (YAML)").classes(
+                    "text-2xl font-bold text-blue-700 mb-4"
+                )
+
+                # Zone repliable
+                with ui.expansion("Afficher / masquer la configuration YAML").classes(
+                    "w-full text-lg"
+                ) as yaml_expansion:
+
+                    # Pré-remplir le YAML depuis engine.config
+                    import yaml
+                    yaml_text = ui.textarea(
+                        label="Configuration YAML",
+                        value=yaml.safe_dump(engine.config, sort_keys=False, allow_unicode=True),
+                    ).classes("w-full h-80 text-base font-mono bg-gray-50 p-3 rounded-xl")
+
+                    def apply_yaml_update():
+                        try:
+                            # 1) Vérifier YAML valide
+                            new_config = yaml.safe_load(yaml_text.value)
+
+                            if not isinstance(new_config, dict):
+                                raise ValueError("Le YAML doit contenir un objet racine (dict).")
+
+                            # 2) Validation stricte
+                            if "questions" not in new_config:
+                                raise ValueError("Clé 'questions' manquante.")
+                            if not isinstance(new_config["questions"], list):
+                                raise ValueError("'questions' doit être une liste.")
+
+                            for q in new_config["questions"]:
+                                if "text" not in q:
+                                    raise ValueError("Chaque question doit contenir 'text'.")
+                                if "options" not in q:
+                                    raise ValueError("Chaque question doit contenir 'options'.")
+                                if not isinstance(q["options"], list):
+                                    raise ValueError("'options' doit être une liste.")
+                                if "points" in q and not isinstance(q["points"], int):
+                                    raise ValueError("'points' doit être un entier.")
+                                if "duration" in q and not isinstance(q["duration"], int):
+                                    raise ValueError("'duration' doit être un entier.")
+
+                            # 3) Overwrite mémoire
+                            engine.config = new_config
+                            engine.questions = new_config["questions"]
+
+                            # 4) Reset moteur
+                            engine.players.clear()
+                            engine.vip_id = None
+                            engine.current_q = None
+                            engine.answers.clear()
+                            engine.state = "lobby"
+
+                            ui.notify("✔ Configuration mise à jour et jeu réinitialisé.", type="positive")
+
+                        except Exception as e:
+                            ui.notify(f"Erreur YAML : {e}", type="negative")
+
+                    ui.button(
+                        "💾 Mettre à jour les questions",
+                        on_click=apply_yaml_update
+                    ).classes(
+                        "mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl"
+                    )
+
+            
             # ---------------- START ----------------
             with OrganizerCard()():
 
