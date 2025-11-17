@@ -109,5 +109,8 @@ participant_final_page(engine)
 ui.run(
     title="GoldenQuizz",
     reload=True,
-    storage_secret="goldenquizz-secret-key-1234"
+    storage_secret="goldenquizz-secret-key-1234",
+    forwarded_allow_ips="*"
 )
+
+
