@@ -110,7 +110,8 @@ ui.run(
     title="GoldenQuizz",
     reload=True,
     storage_secret="goldenquizz-secret-key-1234",
-    forwarded_allow_ips="*"
+    cookies={'samesite': 'None', 'secure': True},
+    forwarded_allow_ips="*",
 )
 
 
