@@ -12,8 +12,22 @@ def organizer_question_page(engine):
 
             # ---------------- HEADER ----------------
             with organizer_header():
-                OrganizerTitle(f"🎯 Question numéro {engine.current_q + 1}")()
-                ui.label("Mode organisateur").classes("text-md text-gray-500 italic")
+
+                q = engine.get_current_question()
+                points = q.get("points", 0)
+
+                # Ligne d'en-tête : numéro + points
+                with ui.row().classes("items-baseline gap-4"):
+                    OrganizerTitle(f"🎯 Question {engine.current_q + 1}")()
+                    ui.label(f"{points} pts").classes(
+                        "text-xl font-bold text-green-700"
+                    )
+
+                ui.label("Mode organisateur").classes(
+                    "text-md text-gray-500 italic"
+                )
+
+
 
             # ---------------- QUESTION + ANSWERS ----------------
             with OrganizerCard()():

@@ -17,6 +17,10 @@ def participant_question_page(engine):
 
                 ui.label(f"👤 {name}") \
                     .classes("text-xl font-semibold text-blue-600 mb-4 text-center")
+                
+                # === Points associés à la question ===
+                points_label = ui.label("") \
+                    .classes("text-md font-bold text-green-700 mb-2 text-center")
 
                 # === Zone principale ===
                 question_label = ui.label("⏳ En attente de la question...") \
@@ -48,6 +52,10 @@ def participant_question_page(engine):
                         return
 
                     question_label.set_text(q.get("text", "❓ Question"))
+
+                    # ⭐ Affichage des points de la question
+                    pts = q.get("points", 0)
+                    points_label.set_text(f"{pts} points")
 
                     answers = (
                         q.get("options")

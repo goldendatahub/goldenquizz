@@ -48,7 +48,7 @@ def home_page():
                 "text-5xl font-extrabold text-blue-700 text-center tracking-tight"
             )
 
-            ui.label("Le quiz interactif 👑").classes(
+            ui.label("Le quizz interactif 👑").classes(
                 "text-xl text-gray-600 text-center -mt-4"
             )
 

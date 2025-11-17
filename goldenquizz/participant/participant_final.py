@@ -38,6 +38,16 @@ def participant_final_page(engine):
             # -----------------------------
             # FOOTER
             # -----------------------------
-            ui.label("GoldenQuizz © 2025").classes(
-                theme.TEXT_FOOTER + " mt-8 text-center"
-            )
+            with ui.column().classes("mt-8 items-center gap-4"):
+
+                # --- Bouton de retour à l’écran de connexion ---
+                ui.button(
+                    "🔄 Revenir à l’écran de connexion",
+                    on_click=lambda: ui.navigate.to("/participant/connect"),
+                ).classes(
+                    "bg-blue-600 text-white px-6 py-3 rounded-xl shadow-md active:bg-blue-700"
+                )
+
+                ui.label("GoldenQuizz © 2025").classes(
+                    theme.TEXT_FOOTER + " text-center"
+                )
