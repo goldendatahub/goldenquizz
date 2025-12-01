@@ -8,3 +8,10 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Goldenquizz data files
+goldenquizz/data/
+
+# .nicegui files
+.nicegui/
+

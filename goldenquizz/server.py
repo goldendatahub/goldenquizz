@@ -1,7 +1,8 @@
-from nicegui import ui
+from nicegui import ui,app
 from goldenquizz.game_engine import GameEngine
 from goldenquizz.ui.theme import GLOBAL_CSS
-
+from fastapi.staticfiles import StaticFiles
+import os
 
 
 # ---------------------------------------------------------
@@ -85,6 +86,33 @@ def home_page():
                 "mt-8 text-gray-400 text-sm text-center"
             )
 
+# ---------------------------------------------------------
+# SERVEUR STATIQUE POUR LES IMAGES (compatible Windows + Docker)
+# ---------------------------------------------------------
+
+# Chemin local (Windows / développement)
+LOCAL_IMG_DIR = os.path.join(os.path.dirname(__file__), "data", "img")
+
+# Chemin en production (Docker)
+DOCKER_IMG_DIR = "/app/data/img"
+
+# Sélection automatique
+image_dir = DOCKER_IMG_DIR if os.path.exists(DOCKER_IMG_DIR) else LOCAL_IMG_DIR
+
+# Création auto si absent (utile en local)
+os.makedirs(image_dir, exist_ok=True)
+
+print(f"📸 Static images directory = {image_dir}")
+
+
+# Montage FastAPI
+app.mount(
+    "/images",
+    StaticFiles(directory=image_dir),
+    name="images"
+)
+
+print("📂 Contenu du dossier d'images:", os.listdir(image_dir))
 
 # -----------------------------------------------------
 #   PAGES ORGANISATEUR
